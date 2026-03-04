@@ -136,16 +136,155 @@ ESP32-Servo
 
 ---
 
-# Project Roadmap
+## Face Tracking (New Feature)
 
-Future improvements:
+The project now includes a **basic face tracking system**.
 
-* Face detection
-* Automatic camera tracking
-* Pan/tilt mount with two servos
-* Mobile app control
+A Python script detects a face using the camera and automatically moves the servo so that the face stays in the **center of the camera image**.
+
+The system works as follows:
+
+```
+Camera → Face Detection → X position of face → Control algorithm → ESP32 → Servo motor
+```
+
+The servo continuously adjusts its angle until the detected face is centered in the frame.
 
 ---
+
+## How It Works
+
+1. The Python script captures frames from the camera.
+2. MediaPipe detects the face.
+3. The **horizontal center of the face** is calculated.
+4. The difference between the face position and the image center is computed:
+
+```
+error = face_x - 0.5
+```
+
+5. A control algorithm (PI controller) calculates the required servo movement.
+6. The target servo angle is sent to the ESP32 through **Serial (USB)**.
+
+---
+
+## Required Python Dependencies
+
+Install the required packages:
+
+```bash
+pip install mediapipe opencv-python pyserial
+```
+
+---
+
+## Running Face Tracking
+
+1. Upload the firmware to the ESP32:
+
+```bash
+pio run -t upload
+```
+
+2. Make sure the ESP32 stays connected via USB.
+
+3. Close any Serial Monitor.
+
+4. Run the tracking script:
+
+```bash
+python track_center.py
+```
+
+---
+
+## Camera Setup
+
+The camera can be:
+
+* a USB webcam
+* an external camera
+* a capture device
+
+If the camera does not start, change the index in the script:
+
+```python
+cap = cv2.VideoCapture(0)
+```
+
+Try values `1` or `2` if necessary.
+
+---
+
+## Servo Control Algorithm
+
+The control system keeps the face centered by minimizing the error:
+
+```
+error = x_norm - 0.5
+```
+
+Where:
+
+| Value | Meaning            |
+| ----- | ------------------ |
+| 0.0   | face at left edge  |
+| 0.5   | face centered      |
+| 1.0   | face at right edge |
+
+The algorithm uses:
+
+* **Proportional control (P)** for fast movement
+* **Integral control (I)** to remove small steady errors
+* **Deadzone** to prevent jitter
+* **Exponential smoothing** for stability
+* **Step limiting** to prevent oscillation
+
+---
+
+## Tuning Parameters
+
+The following parameters can be adjusted in the Python script:
+
+| Parameter      | Purpose                     |
+| -------------- | --------------------------- |
+| `KP`           | responsiveness of tracking  |
+| `KI`           | correction of steady errors |
+| `DEADZONE`     | prevents small jitter       |
+| `EMA`          | smoothing factor            |
+| `MAX_STEP_DEG` | limits servo speed          |
+
+Typical stable values:
+
+```
+KP = 35
+KI = 8
+DEADZONE = 0.06
+EMA = 0.25
+MAX_STEP_DEG = 2
+```
+
+---
+
+## Hardware Notes
+
+For stable operation:
+
+* The servo should be powered from a **stable 5V source**
+* The **ESP32 and servo power supply must share a common GND**
+* Adding a **100–470µF capacitor** near the servo can reduce jitter
+
+---
+
+## Next Planned Improvements
+
+Future versions of the project may include:
+
+* full **pan–tilt camera mount**
+* **multiple face tracking**
+* running detection directly on an **ESP32-CAM**
+* mobile application control
+
 
 # License
 
