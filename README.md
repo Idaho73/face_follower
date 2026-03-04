@@ -289,4 +289,3 @@ Future versions of the project may include:
 # License
 
 MIT License
-C:\Users\gergo.LOQI\Documents\PlatformIO\Projects\face_follower\README.md
