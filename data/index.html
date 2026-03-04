@@ -1,0 +1,53 @@
+<!doctype html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body{font-family:system-ui;margin:24px;max-width:520px}
+    .card{padding:16px;border:1px solid #ddd;border-radius:12px}
+    button{padding:12px 16px;margin:6px;font-size:16px}
+    input[type=range]{width:100%}
+    .row{display:flex;gap:8px;flex-wrap:wrap}
+    .small{opacity:.7;font-size:14px}
+  </style>
+</head>
+<body>
+  <h2>ESP32 Servo Control (SG90)</h2>
+  <div class="card">
+    <div class="row">
+      <button onclick="center()">Center</button>
+      <button onclick="step(-1)">Left</button>
+      <button onclick="step(1)">Right</button>
+    </div>
+
+    <p>Angle: <span id="ang">--</span>°</p>
+    <input id="slider" type="range" min="0" max="180" value="90" oninput="setAngle(this.value)">
+
+    <p class="small">
+      Csatlakozz a Wi-Fi-hez, majd nyisd meg a böngészőben az ESP32 IP-jét (Serial Monitorban látod).
+    </p>
+  </div>
+
+<script>
+async function api(path){ await fetch(path); }
+
+async function setAngle(v){
+  document.getElementById('ang').innerText = v;
+  await api(`/angle?v=${v}`);
+}
+
+async function step(dir){
+  await api(`/nudge?dir=${dir}`);
+}
+
+async function center(){
+  await api(`/center`);
+  // UI-t is középre tesszük (később kérhetjük az aktuális értéket is)
+  const s = document.getElementById('slider');
+  // itt a szerver oldali center a mérvadó, de UI-ban visszaállítjuk:
+  s.value = 90;
+  document.getElementById('ang').innerText = s.value;
+}
+</script>
+</body>
+</html>
