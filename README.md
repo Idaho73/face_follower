@@ -1,291 +1,70 @@
-# ESP32 Servo Web Control
+# 🎯 ESP32 Serial Face Tracking
 
-Simple ESP32 project to control an **SG90 servo motor from a phone via Wi-Fi**.
-The ESP32 creates its own Wi-Fi network and hosts a small web interface where the servo can be moved left, right, centered, or controlled with a slider.
-
-This project is the first step toward a **face-tracking camera system**.
+A high-performance face-tracking system that uses **Python (MediaPipe)** for computer vision and an **ESP32** to control a servo motor via **Serial (USB)** communication.
 
 ---
 
-# Features
+## 🔌 Hardware Setup
 
-* ESP32 creates its own Wi-Fi access point
-* Simple web UI to control the servo
-* Works from any phone browser
-* Built with **PlatformIO + Arduino framework**
-* Designed to be easily extended (e.g. face tracking)
+| Component | ESP32 Pin | Notes |
+| :--- | :--- | :--- |
+| **Servo Signal (Yellow)** | **GPIO 25** | Configurable in `main.cpp` |
+| **Servo VCC (Red)** | **5V** | Use a stable 5V source (e.g., Arduino 5V pin) |
+| **Servo GND (Brown)** | **GND** | **Crucial:** Must share a common ground with ESP32 |
 
----
-
-# Hardware
-
-Required components:
-
-* ESP32 development board
-* SG90 servo motor
-* Arduino board (used as 5V power supply)
-* 12V battery for the Arduino
-* jumper wires
+> **Pro Tip:** If the servo vibrates or resets the ESP32, add a **100µF - 470µF capacitor** between the Servo VCC and GND to smooth out current spikes.
 
 ---
 
-# Wiring
+## ⚙️ Software Installation
 
-Servo connections:
+### 1. ESP32 Firmware
+* Install the **ESP32Servo** library in your Arduino IDE or PlatformIO.
+* Flash the provided code to your ESP32.
+* The board is configured for **115200 Baud**.
 
-| Servo wire    | Connect to                            |
-| ------------- | ------------------------------------- |
-| Brown         | GND                                   |
-| Red           | 5V (from Arduino board)               |
-| Yellow/Orange | ESP32 GPIO (configured in `config.h`) |
-
-Important:
-
-* The **servo is powered from the Arduino 5V pin**
-* The **ESP32 and Arduino GND must be connected together**
-
-Example:
-
-ESP32 GPIO → Servo signal
-Arduino 5V → Servo VCC
-Arduino GND → Servo GND
-ESP32 GND → Arduino GND
-
----
-
-# Software Setup
-
-## 1. Install tools
-
-Install:
-
-* **VS Code**
-* **PlatformIO extension**
-
----
-
-## 2. Clone the project
-
----
-
-## 3. Configure the project
-
-Edit:
-
-```
-include/config.h
-```
-
-Set:
-
-* Wi-Fi name
-* Wi-Fi password
-* Servo pin
-* Servo limits
-
-Example:
-
-```
-#define WIFI_AP_SSID "ESP32-Servo"
-#define WIFI_AP_PASS "password123"
-
-#define SERVO_PIN 25
-#define SERVO_MIN_DEG 0
-#define SERVO_MAX_DEG 180
-#define SERVO_CENTER_DEG 90
-```
-
----
-
-## 4. Upload the filesystem (web UI)
-
-The web interface is stored in **LittleFS**.
-
-Run:
-
-```bash
-pio run -t uploadfs
-```
-
----
-
-## 5. Upload firmware
-
-```bash
-pio run -t upload
-```
-
----
-
-# Usage
-
-1. Power the ESP32
-2. Connect your phone to the Wi-Fi network:
-
-```
-ESP32-Servo
-```
-
-3. Open your browser and navigate to:
-
-```
-192.168.4.1
-```
-
-4. Use the buttons or slider to move the servo.
-
----
-
-## Face Tracking (New Feature)
-
-The project now includes a **basic face tracking system**.
-
-A Python script detects a face using the camera and automatically moves the servo so that the face stays in the **center of the camera image**.
-
-The system works as follows:
-
-```
-Camera → Face Detection → X position of face → Control algorithm → ESP32 → Servo motor
-```
-
-The servo continuously adjusts its angle until the detected face is centered in the frame.
-
----
-
-## How It Works
-
-1. The Python script captures frames from the camera.
-2. MediaPipe detects the face.
-3. The **horizontal center of the face** is calculated.
-4. The difference between the face position and the image center is computed:
-
-```
-error = face_x - 0.5
-```
-
-5. A control algorithm (PI controller) calculates the required servo movement.
-6. The target servo angle is sent to the ESP32 through **Serial (USB)**.
-
----
-
-## Required Python Dependencies
-
-Install the required packages:
-
+### 2. Python Environment
+Install the required libraries using pip:
 ```bash
 pip install mediapipe opencv-python pyserial
 ```
 
+# 🤖 Control Logic: The "Comfort Zone"
+
+This system implements a **Deadzone (0.4 - 0.6)**. Instead of constantly fighting to keep the face at exactly $x=0.5$, the motor remains idle as long as the face stays within the center 20% of the frame. This prevents jitter and reduces motor wear.
+
+### How it works:
+* **$x < 0.4$**: Face moved too far left $\rightarrow$ Servo adjusts left.
+* **$0.4 < x < 0.6$**: Face is in the Comfort Zone $\rightarrow$ **Servo holds position**.
+* **$x > 0.6$**: Face moved too far right $\rightarrow$ Servo adjusts right.
+
+### Mathematical Error Calculation:
+The error ($err$) is calculated relative to the boundaries of the comfort zone:
+
+$$err = \begin{cases} x_{norm} - 0.6 & \text{if } x_{norm} > 0.6 \\ x_{norm} - 0.4 & \text{if } x_{norm} < 0.4 \\ 0 & \text{otherwise} \end{cases}$$
+
 ---
 
-## Running Face Tracking
+# 🚀 Usage
 
-1. Upload the firmware to the ESP32:
-
-```bash
-pio run -t upload
-```
-
-2. Make sure the ESP32 stays connected via USB.
-
-3. Close any Serial Monitor.
-
-4. Run the tracking script:
+1.  **Connect** your ESP32 to your PC via USB.
+2.  **Identify** your Serial Port (e.g., `COM8` on Windows or `/dev/ttyUSB0` on Linux).
+3.  **Ensure** the `SERIAL_PORT` variable in your Python script matches your port.
+4.  **Run** the tracking script:
 
 ```bash
 python track_center.py
 ```
 
----
+## 🛠️ Tuning Parameters
 
-## Camera Setup
-
-The camera can be:
-
-* a USB webcam
-* an external camera
-* a capture device
-
-If the camera does not start, change the index in the script:
-
-```python
-cap = cv2.VideoCapture(0)
-```
-
-Try values `1` or `2` if necessary.
-
----
-
-## Servo Control Algorithm
-
-The control system keeps the face centered by minimizing the error:
-
-```
-error = x_norm - 0.5
-```
-
-Where:
-
-| Value | Meaning            |
-| ----- | ------------------ |
-| 0.0   | face at left edge  |
-| 0.5   | face centered      |
-| 1.0   | face at right edge |
-
-The algorithm uses:
-
-* **Proportional control (P)** for fast movement
-* **Integral control (I)** to remove small steady errors
-* **Deadzone** to prevent jitter
-* **Exponential smoothing** for stability
-* **Step limiting** to prevent oscillation
-
----
-
-## Tuning Parameters
-
-The following parameters can be adjusted in the Python script:
-
-| Parameter      | Purpose                     |
-| -------------- | --------------------------- |
-| `KP`           | responsiveness of tracking  |
-| `KI`           | correction of steady errors |
-| `DEADZONE`     | prevents small jitter       |
-| `EMA`          | smoothing factor            |
-| `MAX_STEP_DEG` | limits servo speed          |
-
-Typical stable values:
-
-```
-KP = 35
-KI = 8
-DEADZONE = 0.06
-EMA = 0.25
-MAX_STEP_DEG = 2
-```
-
----
-
-## Hardware Notes
-
-For stable operation:
-
-* The servo should be powered from a **stable 5V source**
-* The **ESP32 and servo power supply must share a common GND**
-* Adding a **100–470µF capacitor** near the servo can reduce jitter
-
----
-
-## Next Planned Improvements
-
-Future versions of the project may include:
-
-* full **pan–tilt camera mount**
-* **multiple face tracking**
-* running detection directly on an **ESP32-CAM**
-* mobile application control
+You can fine-tune the behavior in the Python script:
 
 
-# License
 
-MIT License
+| Parameter | Default | Effect |
+| :--- | :--- | :--- |
+| **KP** | 40 | **Proportional Gain:** Higher values make the motor move faster. |
+| **KI** | 2 | **Integral Gain:** Helps the motor "reach" the zone edge if it gets stuck. |
+| **EMA** | 0.35 | **Smoothing:** Lower values reduce jitter but add slight delay. |
+| **MAX_STEP_DEG** | 3 | **Speed Limit:** Prevents the servo from moving too violently. |
