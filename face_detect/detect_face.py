@@ -48,7 +48,6 @@ def main():
     last_t = time.time()
     last_send = 0.0
     last_sent = None
-    last_face_t = 0.0
 
     print("Fut a követés... Kilépés: ESC")
 
@@ -119,6 +118,11 @@ def main():
                     ser.write(f"A:{target_angle}\n".encode())
                     last_sent = target_angle
                 last_send = now
+        
+            if (current_err == 0.0):
+                ser.write(f"G:1\n".encode()) # Zónában vagyunk
+            else:
+                ser.write(f"R:1\n".encode()) # Zónán kívül vagyunk
 
         # --- VIZUÁLIS SEGÉDLETEK ---
         # Zóna határok rajzolása (0.4 és 0.6)
