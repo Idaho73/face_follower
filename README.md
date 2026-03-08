@@ -23,6 +23,9 @@ The system can:
 | **Red LED** | **GPIO 33** | Indicates face outside zone |
 | **Buzzer** | **GPIO 22** | Audible feedback |
 
+<img width="704" height="380" alt="image" src="https://github.com/user-attachments/assets/a39b7da9-49ae-4e94-bcdc-fa7a88aaa8e2" />
+
+
 ⚠️ **Important:** Servo and ESP32 must share a common ground.
 
 If the servo causes resets, place a **100µF – 470µF capacitor** between **Servo VCC and GND**.
